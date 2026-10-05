@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_panel"
+        android:icon="@drawable/ic_panel"
+        android:title="@string/control_panel"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_weather"
+        android:icon="@drawable/ic_weather_alert"
+        android:title="@string/weather_alert_title"
+        app:showAsAction="always" />
+</menu>
