@@ -20,7 +20,7 @@
     <string name="notification_foreground_channel_name">预警监听状态</string>
     <string name="notification_foreground_channel_desc">常驻前台通知，静音无打扰</string>
     <string name="notification_foreground_title">地震预警监听中</string>
-    <string name="notification_foreground_text">正在实时监测日本气象厅与中国地震台网预警</string>
+    <string name="notification_foreground_text">正在实时监测日本、中国与台湾地震预警</string>
     <string name="start_monitoring">开启预警</string>
     <string name="stop_monitoring">关闭预警</string>
     <string name="monitoring_on">预警监测已开启</string>
@@ -49,7 +49,10 @@
     <string name="source_wolfx">Wolfx 中国地震台网</string>
     <string name="source_wolfx_jma">Wolfx 日本气象厅</string>
     <string name="source_emsc">EMSC 欧洲地中海</string>
+    <string name="source_emsc_mt">EMSC 震源机制解</string>
     <string name="source_hko">香港天文台</string>
+    <string name="source_jrisq">J-RISQ 地震速报</string>
+    <string name="source_cwa">台湾中央气象署</string>
     <string name="source_bmkg">BMKG 印度尼西亚</string>
     <string name="source_jma_xml">JMA 日本气象厅</string>
     <string name="source_wolfx_eew">Wolfx 日本 JMA</string>
@@ -59,6 +62,12 @@
     <string name="source_short_cea_pr">CEA-PR</string>
     <string name="view_on_bmkg">在 BMKG 查看详情</string>
     <string name="view_on_jma_xml">在日本气象厅查看</string>
+    <string name="view_on_jrisq">在 J-RISQ 查看速报</string>
+    <string name="view_on_cwa">在台湾中央气象署查看</string>
+    <string name="detail_intensity">最大計測震度 %1$s</string>
+    <string name="detail_mechanism">震源机制解</string>
+    <string name="detail_beachball_desc">震源机制解沙滩球</string>
+    <string name="detail_report_image_desc">J-RISQ 推定震度分布图</string>
     <string name="back_to_list">返回列表</string>
     <string name="panel_title">数据源控制面板</string>
     <string name="eew_detail_title">地震预警详情</string>
@@ -82,6 +91,7 @@
     <string name="alert_switch_cenc">接收 CENC 速报（中国）</string>
     <string name="alert_switch_cea">接收 CEA 预警（中国预警网）</string>
     <string name="alert_switch_cea_pr">接收 CEA-PR 预警（省级）</string>
+    <string name="alert_switch_cwa">接收 CWA 预警（台湾）</string>
     <string name="alert_switch_warn_only">仅接收警报通知（速报不发通知）</string>
     <string name="alert_switch_weather">接收天气预警通知</string>
     <string name="alert_switch_quake">接收地震情报通知</string>
@@ -94,9 +104,12 @@
     <string name="source_short_wolfx">CENC</string>
     <string name="source_short_wolfx_jma">JMA</string>
     <string name="source_short_emsc">EMSC</string>
+    <string name="source_short_emsc_mt">EMSC CMT</string>
     <string name="source_short_hko">HKO</string>
     <string name="source_short_bmkg">BMKG</string>
     <string name="source_short_jma_xml">JMA</string>
+    <string name="source_short_jrisq">J-RISQ</string>
+    <string name="source_short_cwa">CWA</string>
     <string name="weather_alert_title">天气预警</string>
     <string name="weather_region">天气预警地区（中央气象台）</string>
     <string name="weather_region_all">全国</string>

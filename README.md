@@ -6,7 +6,7 @@ QSN-lite 是一款轻量级 Android 地震监测与地震预警应用。应用�
 - 最低系统版本：Android 7.0（API 24）
 - 目标系统版本：Android 15（API 35）
 - 开发语言：Kotlin（原生 View + XML 布局）
-- 当前版本：1.0（versionCode 1）
+- 当前版本：1.1（versionCode 2）
 
 ## 功能说明
 
@@ -21,8 +21,10 @@ QSN-lite 是一款轻量级 Android 地震监测与地震预警应用。应用�
 - HKO（香港天文台）
 - BMKG（印度尼西亚气象气候地球物理局）
 - JMA XML（日本气象厅 XML 速报）
+- EMSC CMT（欧洲地中海地震中心震源机制解）
+- J-RISQ 地震速報（日本实时震度速报）
 
-地震详情页展示震级、深度、发震时间、经纬度、上报机构，并附带各数据源同一地震记录的横向对比，以及跳转原机构页面查看的入口。
+地震详情页展示震级、深度、发震时间、经纬度、上报机构，并附带各数据源同一地震记录的横向对比，以及跳转原机构页面查看的入口。EMSC CMT 记录额外展示沙滩球、两个节面参数、DC/CLVD/ISO 分解与 P/T 轴；J-RISQ 记录展示最大计测震度、报次及推定震度分布图。
 
 ### 地震预警（EEW）
 
@@ -30,11 +32,12 @@ QSN-lite 是一款轻量级 Android 地震监测与地震预警应用。应用�
 
 - JMA 紧急地震速报（WebSocket 实时推送 + HTTP 轮询）
 - CENC 地震速报（WebSocket 实时推送 + HTTP 轮询）
+- CWA 台湾中央气象署强震即时报（Wolfx HTTP 轮询）
 - 四川省预警（HTTP 轮询）
 - 福建省预警（HTTP 轮询）
 - 重庆市预警（HTTP 轮询）
 
-收到预警后按用户设置弹出通知。预警接收设置支持按源独立开关（JMA / CENC / CEA / CEA-PR）、仅接收警报（速报不打扰）、地震情报通知及震级阈值（M3 / M4 / M5 / M6 可选）。
+收到预警后按用户设置弹出通知。预警接收设置支持按源独立开关（JMA / CENC / CEA / CEA-PR / CWA）、仅接收警报（速报不打扰）、地震情报通知及震级阈值（M3 / M4 / M5 / M6 可选）。
 
 JMA 预警详情页展示震中、震级、最大震度、发震时间、发布时间、深度、报数、测定方法（PLUM 法 / Level 法 / IPF 单点 / 深层等自动判定），并可查看该地震在列表数据源中的对应记录。
 
@@ -52,7 +55,7 @@ JMA 预警详情页展示震中、震级、最大震度、发震时间、发布�
 
 ## 数据来源与致谢
 
-地震预警与部分地震列表数据由 [Wolfx 开放 API](https://wolfx.jp/zh/docs/open-api) 提供，地震列表另聚合 USGS、EMSC、HKO、BMKG、JMA 等机构公开数据，天气预警来自中央气象台，地图瓦片来自高德地图。感谢上述机构与项目提供公开数据服务。
+地震预警与部分地震列表数据由 [Wolfx 开放 API](https://wolfx.jp/zh/docs/open-api) 提供，地震列表另聚合 USGS、EMSC、HKO、BMKG、JMA、J-RISQ 等机构公开数据，EMSC CMT 来自 EMSC MTWS，天气预警来自中央气象台，地图瓦片来自高德地图。感谢上述机构与项目提供公开数据服务。
 
 ## 构建方法
 
@@ -70,6 +73,13 @@ JMA 预警详情页展示震中、震级、最大震度、发震时间、发布�
 
 产物位于 `app/build/outputs/apk/debug/app-debug.apk`，使用 debug 密钥签名，可直接安装。
 
+ARM64 容器中如遇到 AAPT2 无法启动，可显式指定 SDK 内的 ARM64 版本：
+
+```bash
+./gradlew :app:assembleDebug \
+  -Pandroid.aapt2FromMavenOverride=/opt/android-sdk/build-tools/34.0.0/aapt2
+```
+
 ### Release 构建说明
 
 `app/build.gradle.kts` 中已配置 `release` 构建类型（默认不启用混淆）。正式对外分发前，请自行配置签名信息（建议通过 `local.properties` 或环境变量注入 keystore 路径与密码，不要将签名文件提交到版本库），然后执行：
@@ -77,6 +87,8 @@ JMA 预警详情页展示震中、震级、最大震度、发震时间、发布�
 ```bash
 ./gradlew :app:assembleRelease
 ```
+
+v1.1 发布包沿用 1.0 的 Android Debug 证书签名，以保证已安装 1.0 的设备可以直接覆盖升级；如需上架应用商店，请替换为正式签名证书。
 
 ## 项目结构
 
@@ -91,6 +103,8 @@ app/src/main/
 │   │   ├── EarthquakeRepository.kt# 多源地震列表拉取与解析
 │   │   ├── Eew.kt                 # 预警数据模型
 │   │   ├── EewRepository.kt       # 多源 EEW 拉取与解析
+│   │   ├── MomentTensor.kt        # 震源机制解模型与类型判定
+│   │   ├── MomentTensorStore.kt   # 震源机制解缓存
 │   │   ├── Settings.kt            # 用户设置读写
 │   │   ├── SourceStatus.kt        # 数据源状态模型
 │   │   ├── WeatherAlert.kt        # 天气预警数据模型
@@ -104,6 +118,7 @@ app/src/main/
 │       ├── SourcePanelActivity.kt  # 数据源控制面板
 │       ├── WeatherAlertActivity.kt# 天气预警列表
 │       ├── EarthquakeAdapter.kt   # 地震列表适配器
+│       ├── Beachball.kt           # 震源机制解沙滩球渲染
 │       ├── WeatherAlertAdapter.kt # 天气预警适配器
 │       ├── AmapTileSource.kt      # 高德地图瓦片源
 │       └── MapScrollView.kt       # 地图滚动容器
@@ -111,6 +126,14 @@ app/src/main/
 ```
 
 ## 更新日志
+
+### 1.1（2026-10-17）
+
+- 新增 Wolfx CWA 台湾强震即时报，接入实时轮询、独立开关、通知去重与数据源状态检测。
+- 新增 EMSC MTWS 震源机制解：列表展示机制类型与 DC 占比，详情页绘制沙滩球并显示节面、DC/CLVD/ISO 与 P/T 轴。
+- 新增 J-RISQ 地震速報 RSS：列表展示最大计测震度与报次，详情页加载推定震度分布图并支持跳转原速报。
+- 数据源控制面板新增 CWA、EMSC CMT、J-RISQ 状态检测与 CWA 预警开关。
+- 版本号更新为 1.1（versionCode 2）。
 
 ### 1.0（2026-10-05）
 

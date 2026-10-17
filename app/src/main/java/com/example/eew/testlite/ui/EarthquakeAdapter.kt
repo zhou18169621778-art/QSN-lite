@@ -25,8 +25,10 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.eew.testlite.R
+import com.example.eew.testlite.data.DataSource
 import com.example.eew.testlite.data.Earthquake
 import com.example.eew.testlite.data.Eew
+import com.example.eew.testlite.data.MomentTensorStore
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -118,8 +120,24 @@ class EarthquakeAdapter(
         holder.magnitudeText.text = item.formattedMagnitudeShort()
         holder.magnitudeText.setTextColor(item.magnitudeColor())
         holder.magnitudeBadge.setBackgroundColor(item.magnitudeColor())
-        holder.placeText.text = item.place
-        holder.depthText.text = String.format(Locale.US, "深度 %.1f km", item.depthKm)
+        holder.placeText.text = item.place.ifBlank { "位置未定" }
+        holder.depthText.text = when {
+            item.source == DataSource.JRISQ && item.maxIntensity.isNotBlank() -> buildString {
+                append("最大計測震度 ").append(item.maxIntensity)
+                if (item.status.isNotBlank()) append(" · ").append(item.status)
+            }
+            item.source == DataSource.EMSC_MT -> {
+                val mt = MomentTensorStore.get(item.id)
+                if (mt != null) {
+                    "震源机制解 · " + mt.mechanismType().label +
+                        String.format(Locale.US, " · DC %.0f%%", mt.dcPercent)
+                } else {
+                    String.format(Locale.US, "深度 %.1f km", item.depthKm)
+                }
+            }
+            item.depthKm > 0.0 -> String.format(Locale.US, "深度 %.1f km", item.depthKm)
+            else -> "深度未知"
+        }
         holder.timeText.text = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             .format(Date(item.timeMillis))
         holder.sourceText.text = holder.itemView.context.getString(item.sourceShortLabelRes())

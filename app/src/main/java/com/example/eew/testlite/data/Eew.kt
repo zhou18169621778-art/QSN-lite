@@ -39,7 +39,7 @@ data class Eew(
 ) : Serializable {
 
     fun intensityName(): String {
-        return if (source == DataSource.WOLFX_JMA) "震度" else "烈度"
+        return if (source == DataSource.WOLFX_JMA || source == DataSource.CWA) "震度" else "烈度"
     }
 
     fun hasIntensity(): Boolean {
@@ -53,6 +53,8 @@ data class Eew(
     fun sourceShortLabelRes(): Int {
         return when (source) {
             DataSource.WOLFX_JMA -> com.example.eew.testlite.R.string.source_short_wolfx_jma
+            DataSource.WOLFX_CENC -> com.example.eew.testlite.R.string.source_short_wolfx
+            DataSource.CWA -> com.example.eew.testlite.R.string.source_short_cwa
             DataSource.CEA -> com.example.eew.testlite.R.string.source_short_cea
             DataSource.CEA_PR -> com.example.eew.testlite.R.string.source_short_cea_pr
             else -> com.example.eew.testlite.R.string.source_short_wolfx

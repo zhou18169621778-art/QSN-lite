@@ -81,6 +81,7 @@ class SourcePanelActivity : AppCompatActivity() {
         val eewJmaSwitch = findViewById<SwitchCompat>(R.id.eewJmaSwitch)
         val eewCeaSwitch = findViewById<SwitchCompat>(R.id.eewCeaSwitch)
         val eewCeaPrSwitch = findViewById<SwitchCompat>(R.id.eewCeaPrSwitch)
+        val eewCwaSwitch = findViewById<SwitchCompat>(R.id.eewCwaSwitch)
 
         serviceSwitch.isChecked = EewService.isServiceEnabled(this)
         warnOnlySwitch.isChecked = EewService.isWarnOnly(this)
@@ -89,6 +90,7 @@ class SourcePanelActivity : AppCompatActivity() {
         eewJmaSwitch.isChecked = EewService.isSourceEnabled(this, DataSource.WOLFX_JMA)
         eewCeaSwitch.isChecked = EewService.isSourceEnabled(this, DataSource.CEA)
         eewCeaPrSwitch.isChecked = EewService.isSourceEnabled(this, DataSource.CEA_PR)
+        eewCwaSwitch.isChecked = EewService.isSourceEnabled(this, DataSource.CWA)
 
         serviceSwitch.setOnCheckedChangeListener { _, checked ->
             EewService.setServiceEnabled(this, checked)
@@ -106,6 +108,9 @@ class SourcePanelActivity : AppCompatActivity() {
         }
         eewCeaPrSwitch.setOnCheckedChangeListener { _, checked ->
             EewService.setSourceEnabled(this, DataSource.CEA_PR, checked)
+        }
+        eewCwaSwitch.setOnCheckedChangeListener { _, checked ->
+            EewService.setSourceEnabled(this, DataSource.CWA, checked)
         }
         warnOnlySwitch.setOnCheckedChangeListener { _, checked ->
             EewService.setWarnOnly(this, checked)
@@ -302,9 +307,12 @@ class SourcePanelActivity : AppCompatActivity() {
         statusList.addView(statusRow("Wolfx 中国地震台网", null))
         statusList.addView(statusRow("Wolfx 日本气象厅", null))
         statusList.addView(statusRow("EMSC 欧洲地中海地震中心", null))
+        statusList.addView(statusRow("EMSC 震源机制解", null))
         statusList.addView(statusRow("HKO 香港天文台", null))
         statusList.addView(statusRow("BMKG 印度尼西亚气象局", null))
         statusList.addView(statusRow("JMA 日本气象厅", null))
+        statusList.addView(statusRow("J-RISQ 地震速報", null))
+        statusList.addView(statusRow("Wolfx CWA 预警", null))
         statusList.addView(statusRow("Wolfx CEA-PR 预警", null))
         statusSummary.text = getString(R.string.status_loading)
 
@@ -325,9 +333,18 @@ class SourcePanelActivity : AppCompatActivity() {
             tasks.add(async { pingBuiltin("Wolfx 中国地震台网") { sourceFetchStatus(1) } })
             tasks.add(async { pingBuiltin("Wolfx 日本气象厅") { sourceFetchStatus(2) } })
             tasks.add(async { pingBuiltin("EMSC 欧洲地中海地震中心") { sourceFetchStatus(3) } })
+            tasks.add(async { pingBuiltin("EMSC 震源机制解") { sourceFetchStatus(7) } })
             tasks.add(async { pingBuiltin("HKO 香港天文台") { sourceFetchStatus(4) } })
             tasks.add(async { pingBuiltin("BMKG 印度尼西亚气象局") { sourceFetchStatus(5) } })
             tasks.add(async { pingBuiltin("JMA 日本气象厅") { sourceFetchStatus(6) } })
+            tasks.add(async { pingBuiltin("J-RISQ 地震速報") { sourceFetchStatus(8) } })
+            tasks.add(async {
+                pingBuiltin("Wolfx CWA 预警") {
+                    runCatching {
+                        httpGet("https://api.wolfx.jp/cwa_eew.json?t=${System.currentTimeMillis()}")
+                    }
+                }
+            })
             tasks.add(async {
                 pingBuiltin("Wolfx CEA-PR 预警") {
                     runCatching { httpGet("https://api.wolfx.jp/sc_eew.json") }
@@ -347,7 +364,10 @@ class SourcePanelActivity : AppCompatActivity() {
                 "https://www.seismicportal.eu/fdsnws/event/1/query?limit=1&format=json",
                 "https://data.weather.gov.hk/weatherAPI/opendata/earthquake.php?dataType=qem&lang=sc",
                 "https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json",
-                "https://www.data.jma.go.jp/developer/xml/feed/eqvol.xml"
+                "https://www.data.jma.go.jp/developer/xml/feed/eqvol.xml",
+                "https://seismicportal.eu/mtws/api/search?&format=json&downloadAsFile=false" +
+                    "&orderby=time-desc&offset=0&limit=1",
+                "https://www.j-risq.bosai.go.jp/report/sp/feed/rss2.xml"
             )
             httpGet(urls[index])
         }

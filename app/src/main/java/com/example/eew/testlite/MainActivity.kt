@@ -38,6 +38,7 @@ import com.example.eew.testlite.data.Earthquake
 import com.example.eew.testlite.data.EarthquakeCache
 import com.example.eew.testlite.data.EarthquakeRepository
 import com.example.eew.testlite.data.Eew
+import com.example.eew.testlite.data.MomentTensorStore
 import com.example.eew.testlite.data.Settings
 import com.example.eew.testlite.service.EewService
 import com.example.eew.testlite.ui.DetailActivity
@@ -99,6 +100,7 @@ class MainActivity : AppCompatActivity() {
             dismissWarningBanner()
         }
 
+        MomentTensorStore.load(applicationContext)
         requestNotificationPermissionIfNeeded()
         if (EewService.isServiceEnabled(this)) {
             EewService.start(this)
@@ -226,7 +228,7 @@ class MainActivity : AppCompatActivity() {
             }
             try {
                 val earthquakes = withContext(Dispatchers.IO) {
-                    withTimeout(12000) {
+                    withTimeout(30000) {
                         EarthquakeRepository.fetchRecentEarthquakes(applicationContext)
                     }
                 }

@@ -62,11 +62,13 @@ class EewService : Service() {
         private const val PREFS = "eew_prefs"
         private const val KEY_SEEN_JMA = "seen_jma"
         private const val KEY_SEEN_CENC = "seen_cenc"
+        private const val KEY_SEEN_CWA = "seen_cwa"
         private const val KEY_SERVICE_ENABLED = "service_enabled"
         private const val KEY_JMA_ENABLED = "jma_enabled"
         private const val KEY_CENC_ENABLED = "cenc_enabled"
         private const val KEY_CEA_ENABLED = "cea_enabled"
         private const val KEY_CEA_PR_ENABLED = "cea_pr_enabled"
+        private const val KEY_CWA_ENABLED = "cwa_eew_enabled"
         private const val KEY_WARN_ONLY = "warn_only"
         private const val KEY_WEATHER_ENABLED = "weather_enabled"
         const val EXTRA_STOP = "extra_stop"
@@ -94,6 +96,7 @@ class EewService : Service() {
                 DataSource.WOLFX_JMA -> KEY_JMA_ENABLED
                 DataSource.CEA -> KEY_CEA_ENABLED
                 DataSource.CEA_PR -> KEY_CEA_PR_ENABLED
+                DataSource.CWA -> KEY_CWA_ENABLED
                 else -> KEY_CENC_ENABLED
             }
             return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -141,6 +144,7 @@ class EewService : Service() {
                 DataSource.WOLFX_JMA -> KEY_JMA_ENABLED
                 DataSource.CEA -> KEY_CEA_ENABLED
                 DataSource.CEA_PR -> KEY_CEA_PR_ENABLED
+                DataSource.CWA -> KEY_CWA_ENABLED
                 else -> KEY_CENC_ENABLED
             }
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -541,6 +545,7 @@ class EewService : Service() {
         val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
         val key = when (eew.source) {
             DataSource.WOLFX_JMA -> KEY_SEEN_JMA
+            DataSource.CWA -> KEY_SEEN_CWA
             else -> KEY_SEEN_CENC
         }
         val seenId = if (eew.reportNum > 0) eew.id + "#" + eew.reportNum else eew.id

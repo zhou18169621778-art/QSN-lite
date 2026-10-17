@@ -29,6 +29,7 @@ object EewRepository {
 
     private const val JMA_EEW_URL = "https://api.wolfx.jp/jma_eew.json"
     private const val CENC_EEW_URL = "https://api.wolfx.jp/cenc_eew.json"
+    private const val CWA_EEW_URL = "https://api.wolfx.jp/cwa_eew.json"
     private const val SC_EEW_URL = "https://api.wolfx.jp/sc_eew.json"
     private const val FJ_EEW_URL = "https://api.wolfx.jp/fj_eew.json"
     private const val CQ_EEW_URL = "https://api.wolfx.jp/cq_eew.json"
@@ -36,6 +37,7 @@ object EewRepository {
     suspend fun fetchLatestWarnings(): List<Eew> {
         return buildList {
             runCatching { addAll(fetchJma()) }
+            runCatching { addAll(fetchCwa()) }
             runCatching { addAll(fetchCenc()) }
             runCatching { addAll(fetchSc()) }
             runCatching { addAll(fetchFj()) }
@@ -112,6 +114,29 @@ object EewRepository {
         )
     }
 
+    fun parseCwaEewJson(jsonString: String): Eew? {
+        val root = JSONObject(jsonString)
+        val id = root.optLong("ID", 0L)
+        if (id == 0L || root.optBoolean("isTraining", false)) return null
+        val intensity = root.optString("MaxIntensity", "")
+        return Eew(
+            id = "cwa_eew_$id",
+            source = DataSource.CWA,
+            reportTimeMillis = parseTw(root.optString("ReportTime")),
+            originTimeMillis = parseTw(root.optString("OriginTime")),
+            hypocenter = root.optString("HypoCenter"),
+            latitude = root.optDouble("Latitude", 0.0),
+            longitude = root.optDouble("Longitude", 0.0),
+            magnitude = optMagnitude(root),
+            depthKm = root.optDouble("Depth", 0.0),
+            maxIntensity = intensity,
+            isWarn = intensity.isNotBlank() && intensity != "0" && intensity != "null",
+            isFinal = root.optBoolean("isFinal", false),
+            isCancel = root.optBoolean("isCancel", false),
+            reportNum = root.optInt("ReportNum", 0)
+        )
+    }
+
     fun parseScEewJson(jsonString: String): Eew? {
         return parsePrEewJson(jsonString, "sc")
     }
@@ -151,6 +176,12 @@ object EewRepository {
 
     private suspend fun fetchJma(): List<Eew> {
         return parseJmaJson(request(JMA_EEW_URL))?.let { listOf(it) } ?: emptyList()
+    }
+
+    private suspend fun fetchCwa(): List<Eew> {
+        // Cloudflare 会缓存无参数请求并返回 403，带时间戳参数可稳定拿到 JSON
+        val url = "$CWA_EEW_URL?t=${System.currentTimeMillis()}"
+        return parseCwaEewJson(request(url))?.let { listOf(it) } ?: emptyList()
     }
 
     private suspend fun fetchCenc(): List<Eew> {
@@ -199,6 +230,16 @@ object EewRepository {
         return try {
             val format = SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.US)
             format.timeZone = TimeZone.getTimeZone("Asia/Tokyo")
+            format.parse(value)?.time ?: 0L
+        } catch (e: Exception) {
+            0L
+        }
+    }
+
+    private fun parseTw(value: String): Long {
+        return try {
+            val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+            format.timeZone = TimeZone.getTimeZone("Asia/Taipei")
             format.parse(value)?.time ?: 0L
         } catch (e: Exception) {
             0L

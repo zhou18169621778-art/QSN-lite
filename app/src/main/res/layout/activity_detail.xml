@@ -115,6 +115,36 @@
                             android:textColor="@color/primary"
                             android:textSize="12sp" />
                     </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/detailIntensity"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_source_tag"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="3dp"
+                        android:textColor="@color/primary"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/detailBeachball"
+                        android:layout_width="180dp"
+                        android:layout_height="180dp"
+                        android:layout_marginTop="14dp"
+                        android:contentDescription="@string/detail_beachball_desc"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/detailMechanism"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -201,11 +231,26 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="1dp">
 
-                <org.osmdroid.views.MapView
-                    android:id="@+id/mapView"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="260dp"
-                    android:layout_margin="8dp" />
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/detailReportImage"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:adjustViewBounds="true"
+                        android:contentDescription="@string/detail_report_image_desc"
+                        android:scaleType="fitCenter"
+                        android:visibility="gone" />
+
+                    <org.osmdroid.views.MapView
+                        android:id="@+id/mapView"
+                        android:layout_width="match_parent"
+                        android:layout_height="260dp"
+                        android:layout_margin="8dp" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <TextView

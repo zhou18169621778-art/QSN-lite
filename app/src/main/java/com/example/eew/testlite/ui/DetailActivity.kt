@@ -19,19 +19,24 @@
 package com.example.eew.testlite.ui
 
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.eew.testlite.R
+import com.example.eew.testlite.data.DataSource
 import com.example.eew.testlite.data.Earthquake
 import com.example.eew.testlite.data.EarthquakeCache
 import com.example.eew.testlite.data.EarthquakeRepository
+import com.example.eew.testlite.data.MomentTensor
+import com.example.eew.testlite.data.MomentTensorStore
 import com.example.eew.testlite.data.Settings
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
@@ -70,7 +75,8 @@ class DetailActivity : AppCompatActivity() {
             setNavigationOnClickListener { finish() }
         }
 
-        initMap(earthquake)
+        MomentTensorStore.load(applicationContext)
+        setupVisuals(earthquake)
 
         findViewById<TextView>(R.id.detailMagnitude).apply {
             text = earthquake.formattedMagnitude()
@@ -98,19 +104,37 @@ class DetailActivity : AppCompatActivity() {
         }
         findViewById<TextView>(R.id.detailSource).text = getString(earthquake.sourceShortLabelRes())
         findViewById<TextView>(R.id.detailDepth).text =
-            String.format(Locale.US, "%.1f km", earthquake.depthKm)
-        findViewById<TextView>(R.id.detailCoordinates).text = String.format(
-            Locale.US,
-            "%.2f, %.2f",
-            earthquake.latitude,
-            earthquake.longitude
-        )
+            if (earthquake.depthKm > 0.0) {
+                String.format(Locale.US, "%.1f km", earthquake.depthKm)
+            } else {
+                "—"
+            }
+        findViewById<TextView>(R.id.detailCoordinates).text =
+            if (earthquake.latitude != 0.0 || earthquake.longitude != 0.0) {
+                String.format(Locale.US, "%.2f, %.2f", earthquake.latitude, earthquake.longitude)
+            } else {
+                "—"
+            }
+
+        findViewById<TextView>(R.id.detailIntensity).apply {
+            if (earthquake.maxIntensity.isNotBlank()) {
+                text = getString(R.string.detail_intensity, earthquake.maxIntensity)
+                visibility = View.VISIBLE
+            } else {
+                visibility = View.GONE
+            }
+        }
 
         findViewById<MaterialButton>(R.id.detailUrl).apply {
-            text = getString(earthquake.viewOnLabelRes())
-            setOnClickListener {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(earthquake.url))
-                startActivity(intent)
+            if (earthquake.url.isBlank()) {
+                visibility = View.GONE
+            } else {
+                visibility = View.VISIBLE
+                text = getString(earthquake.viewOnLabelRes())
+                setOnClickListener {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(earthquake.url))
+                    startActivity(intent)
+                }
             }
         }
 
@@ -127,6 +151,81 @@ class DetailActivity : AppCompatActivity() {
             }
             if (!isDestroyed) {
                 renderComparison(earthquake, (fresh ?: emptyList()) + cache + base)
+            }
+        }
+    }
+
+    private fun setupVisuals(earthquake: Earthquake) {
+        when (earthquake.source) {
+            DataSource.EMSC_MT -> {
+                val mt = MomentTensorStore.get(earthquake.id)
+                if (mt != null) {
+                    renderMomentTensor(mt)
+                    findViewById<View>(R.id.mapCard).visibility = View.GONE
+                } else {
+                    initMap(earthquake)
+                }
+            }
+            DataSource.JRISQ -> {
+                findViewById<View>(R.id.mapView).visibility = View.GONE
+                if (earthquake.mapImageUrl.isNotBlank()) {
+                    loadReportImage(earthquake.mapImageUrl)
+                } else {
+                    findViewById<View>(R.id.mapCard).visibility = View.GONE
+                }
+            }
+            else -> initMap(earthquake)
+        }
+    }
+
+    private fun renderMomentTensor(mt: MomentTensor) {
+        val image = findViewById<ImageView>(R.id.detailBeachball)
+        val label = findViewById<TextView>(R.id.detailMechanism)
+        label.text = buildString {
+            append(mt.mechanismType().label)
+            append("\nNP1 走向 ").append(String.format(Locale.US, "%.0f", mt.strike1))
+                .append("° / 倾角 ").append(String.format(Locale.US, "%.0f", mt.dip1))
+                .append("° / 滑动 ").append(String.format(Locale.US, "%.0f", mt.rake1)).append("°")
+            append("\nNP2 走向 ").append(String.format(Locale.US, "%.0f", mt.strike2))
+                .append("° / 倾角 ").append(String.format(Locale.US, "%.0f", mt.dip2))
+                .append("° / 滑动 ").append(String.format(Locale.US, "%.0f", mt.rake2)).append("°")
+            append(String.format(
+                Locale.US,
+                "\nDC %.0f%% · CLVD %.0f%% · ISO %.0f%%",
+                mt.dcPercent, mt.clvdPercent, mt.isoPercent
+            ))
+            append("\nP 轴 ").append(String.format(Locale.US, "%.0f", mt.pAz)).append("°/")
+                .append(String.format(Locale.US, "%.0f", mt.pPlunge)).append("°")
+                .append(" · T 轴 ").append(String.format(Locale.US, "%.0f", mt.tAz)).append("°/")
+                .append(String.format(Locale.US, "%.0f", mt.tPlunge)).append("°")
+        }
+        label.visibility = View.VISIBLE
+        lifecycleScope.launch {
+            val bitmap = withContext(Dispatchers.Default) {
+                Beachball.render(mt.strike1, mt.dip1, mt.rake1, 512)
+            }
+            if (!isDestroyed) {
+                image.setImageBitmap(bitmap)
+                image.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun loadReportImage(url: String) {
+        lifecycleScope.launch {
+            val bitmap = withContext(Dispatchers.IO) {
+                runCatching {
+                    java.net.URL(url).openStream().use { BitmapFactory.decodeStream(it) }
+                }.getOrNull()
+            }
+            if (!isDestroyed) {
+                val image = findViewById<ImageView>(R.id.detailReportImage)
+                if (bitmap != null) {
+                    image.setImageBitmap(bitmap)
+                    image.visibility = View.VISIBLE
+                } else {
+                    findViewById<View>(R.id.mapCard).visibility = View.GONE
+                }
             }
         }
     }
@@ -183,6 +282,13 @@ val point = GeoPoint(earthquake.latitude, earthquake.longitude)
         val list = findViewById<LinearLayout>(R.id.detailCompareList)
         val empty = findViewById<TextView>(R.id.detailCompareEmpty)
         list.removeAllViews()
+        // 震源机制解与 J-RISQ 无常规震中坐标, 不参与跨源对比
+        if (earthquake.source == DataSource.EMSC_MT || earthquake.source == DataSource.JRISQ) {
+            comparisonList = emptyList()
+            title.visibility = View.GONE
+            empty.visibility = View.GONE
+            return
+        }
         comparisonList = computeComparison(earthquake, all)
         val matches = comparisonList
         if (matches.isEmpty()) {

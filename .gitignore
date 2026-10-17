@@ -1,15 +1,17 @@
 # Gradle / Android build outputs
 .gradle/
-build/
-app/build/
+**/build/
 local.properties
-*.iml
+
+# IDE
 .idea/
+*.iml
 .DS_Store
+
 # Signing secrets (never commit keystores or passwords)
 *.jks
 *.keystore
 keystore.properties
 
-# Keep the published release APK tracked
-!releases/*.apk
+# Local release artifacts (published via GitHub Releases)
+releases/

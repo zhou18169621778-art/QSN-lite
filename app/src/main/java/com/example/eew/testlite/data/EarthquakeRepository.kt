@@ -36,9 +36,12 @@ enum class DataSource(val labelRes: Int) {
     WOLFX_CENC(com.example.eew.testlite.R.string.source_wolfx),
     WOLFX_JMA(com.example.eew.testlite.R.string.source_wolfx_jma),
     EMSC(com.example.eew.testlite.R.string.source_emsc),
+    EMSC_MT(com.example.eew.testlite.R.string.source_emsc_mt),
     HKO(com.example.eew.testlite.R.string.source_hko),
     BMKG(com.example.eew.testlite.R.string.source_bmkg),
     JMA_XML(com.example.eew.testlite.R.string.source_jma_xml),
+    JRISQ(com.example.eew.testlite.R.string.source_jrisq),
+    CWA(com.example.eew.testlite.R.string.source_cwa),
     CEA(com.example.eew.testlite.R.string.source_cea),
     CEA_PR(com.example.eew.testlite.R.string.source_cea_pr),
 }
@@ -60,6 +63,10 @@ object EarthquakeRepository {
         "https://data.weather.gov.hk/weatherAPI/opendata/earthquake.php?dataType=qem&lang=sc"
     private const val BMKG_URL = "https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json"
     private const val JMA_XML_FEED_URL = "https://www.data.jma.go.jp/developer/xml/feed/eqvol.xml"
+    private const val EMSC_MTWS_URL =
+        "https://seismicportal.eu/mtws/api/search?&format=json&downloadAsFile=false" +
+            "&orderby=time-desc&offset=0&limit=20"
+    private const val JRISQ_URL = "https://www.j-risq.bosai.go.jp/report/sp/feed/rss2.xml"
 
     suspend fun fetchRecentEarthquakes(context: android.content.Context): List<Earthquake> {
         val statuses = mutableListOf<SourceStatus>()
@@ -89,12 +96,15 @@ object EarthquakeRepository {
             deferred.add(async { track("Wolfx 中国地震台网") { fetchWolfxCenc() } })
             deferred.add(async { track("Wolfx 日本气象厅") { fetchWolfxJma() } })
             deferred.add(async { track("EMSC 欧洲地中海地震中心") { fetchEmsc() } })
+            deferred.add(async { track("EMSC 震源机制解") { fetchEmscMt() } })
             deferred.add(async { track("香港天文台") { fetchHko() } })
             deferred.add(async { track("BMKG 印度尼西亚气象局") { fetchBmkg() } })
             deferred.add(async { track("JMA 日本气象厅") { fetchJmaXml() } })
+            deferred.add(async { track("J-RISQ 地震速報") { fetchJrisq() } })
             deferred.mapNotNull { it.runCatching { await() }.getOrNull() }.flatten()
         }
         lastStatuses = statuses.sortedBy { it.label }
+        MomentTensorStore.save(context)
         val seen = LinkedHashSet<String>()
         return results
             .filter { seen.add(it.id) }
@@ -219,6 +229,101 @@ object EarthquakeRepository {
         }
     }
 
+    /**
+     * EMSC MTWS 震源机制解: 每个地震取 preferred 解 (mt_preferred),
+     * 按 ev_unid 去重, 最多返回 12 条。机制解明细存入 MomentTensorStore,
+     * 列表/详情凭 Earthquake.id (emscmt_<mt_id>) 查表。
+     */
+    private suspend fun fetchEmscMt(): List<Earthquake> {
+        val jsonString = request(EMSC_MTWS_URL)
+        val arr = JSONArray(jsonString)
+        val preferred = LinkedHashMap<String, JSONObject>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            val key = o.optString("ev_unid").ifBlank { o.optString("ev_id") }
+            if (key.isBlank()) continue
+            val prev = preferred[key]
+            if (prev == null || (!prev.optBoolean("mt_preferred") && o.optBoolean("mt_preferred"))) {
+                preferred[key] = o
+            }
+        }
+        val mts = LinkedHashMap<String, MomentTensor>()
+        val quakes = buildList {
+            for (o in preferred.values.take(12)) {
+                val mtId = o.optLong("mt_id", 0L)
+                if (mtId == 0L) continue
+                val quakeId = "emscmt_$mtId"
+                val mw = o.optDouble("mt_mw", 0.0).takeIf { it > 0 }
+                    ?: o.optDouble("ev_mag_value", 0.0)
+                if (mw < 2.0) continue
+                val timeMillis = parseMtwsTime(o.optString("ev_event_time"))
+                if (timeMillis <= 0L) continue
+                val mt = MomentTensor(
+                    quakeId = quakeId,
+                    mtId = mtId,
+                    eventUnid = o.optString("ev_unid"),
+                    strike1 = o.optDouble("mt_strike_1"),
+                    dip1 = o.optDouble("mt_dip_1"),
+                    rake1 = o.optDouble("mt_rake_1"),
+                    strike2 = o.optDouble("mt_strike_2"),
+                    dip2 = o.optDouble("mt_dip_2"),
+                    rake2 = o.optDouble("mt_rake_2"),
+                    mw = mw,
+                    depthKm = o.optDouble("mt_depth", 0.0),
+                    centroidLat = o.optDouble("mt_latitude", o.optDouble("ev_latitude")),
+                    centroidLon = o.optDouble("mt_longitude", o.optDouble("ev_longitude")),
+                    centroidTimeMillis = parseMtwsTime(o.optString("mt_centroid_time")),
+                    region = o.optString("mt_region").ifBlank { o.optString("ev_region") },
+                    catalog = o.optString("mt_source_catalog"),
+                    dcPercent = o.optDouble("mt_per_dc", 0.0),
+                    clvdPercent = o.optDouble("mt_per_clvd", 0.0),
+                    isoPercent = o.optDouble("mt_per_iso", 0.0),
+                    pAz = o.optDouble("mt_paz"),
+                    pPlunge = o.optDouble("mt_pplung"),
+                    tAz = o.optDouble("mt_taz"),
+                    tPlunge = o.optDouble("mt_tplung"),
+                    nAz = o.optDouble("mt_naz"),
+                    nPlunge = o.optDouble("mt_nplung")
+                )
+                mts[quakeId] = mt
+                add(
+                    Earthquake(
+                        id = quakeId,
+                        magnitude = mw,
+                        place = mt.region.ifBlank { "震源机制解" },
+                        timeMillis = timeMillis,
+                        latitude = mt.centroidLat,
+                        longitude = mt.centroidLon,
+                        depthKm = mt.depthKm,
+                        url = "",
+                        source = DataSource.EMSC_MT,
+                        magnitudeType = "mw",
+                        agency = mt.catalog,
+                        reportTimeMillis = mt.centroidTimeMillis
+                    )
+                )
+            }
+        }
+        MomentTensorStore.putAll(mts)
+        return quakes
+    }
+
+    /** MTWS 时间 "2026-10-02 16:34:39.96 UTC", 小数秒位数不定, 按 UTC 解析 */
+    private fun parseMtwsTime(value: String): Long {
+        val m = Regex("(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})(?:\\.(\\d+))? UTC").find(value.trim())
+            ?: return 0L
+        return try {
+            val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+            format.timeZone = TimeZone.getTimeZone("UTC")
+            val base = format.parse(m.groupValues[1])?.time ?: return 0L
+            val frac = m.groupValues[2]
+            if (frac.isEmpty()) return base
+            base + (frac + "000").substring(0, 3).toInt()
+        } catch (e: Exception) {
+            0L
+        }
+    }
+
     private suspend fun fetchHko(): List<Earthquake> {
         val jsonString = request(HKO_URL)
         val root = JSONObject(jsonString)
@@ -296,6 +401,76 @@ object EarthquakeRepository {
                 val reportTime = parseJmaDetailTime(firstChildText(entry, "updated") ?: "")
                 add(if (reportTime > 0) detail.copy(reportTimeMillis = reportTime) else detail)
             }
+        }
+    }
+
+    private suspend fun fetchJrisq(): List<Earthquake> {
+        // J-RISQ 地震速報 RSS: content:encoded 里有 M/震源地/最大計測震度 与
+        // 推定震度分布图片 <img src="...">
+        val xml = request(JRISQ_URL)
+        val doc = DocumentBuilderFactory.newInstance().apply {
+            isNamespaceAware = false
+        }.newDocumentBuilder().parse(xml.byteInputStream())
+        val items = doc.getElementsByTagName("item")
+        return buildList {
+            for (i in 0 until items.length) {
+                val item = items.item(i) as Element
+                val content = firstChildText(item, "content:encoded") ?: continue
+                val magnitude = regexFirst(content, "M\\s*([\\d.]+)")?.toDoubleOrNull()
+                    ?: continue
+                if (magnitude < 2.0) continue
+                val place = regexFirst(content, "震源地:([^\\s<]+)")?.trim() ?: ""
+                val intensity = regexFirst(content, "最大計測震度([\\d.]+)") ?: ""
+                // 発生时刻 "2026/08/25 18:07頃発生"
+                val originMatch = Regex("(\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2})頃発生").find(content)
+                val timeMillis = originMatch?.let {
+                    parseJstShort(it.groupValues[1])
+                } ?: 0L
+                if (timeMillis <= 0L) continue
+                val imageUrl = Regex("<img\\s+src=\"([^\"]+)\"").find(content)
+                    ?.groupValues?.get(1) ?: ""
+                val link = firstChildText(item, "link") ?: ""
+                val triggerId = regexFirst(link, "(R-\\d+)") ?: "$timeMillis"
+                val reportTime = parseJmaDetailTime(
+                    firstChildText(item, "dcterms:modified") ?: ""
+                )
+                // 报次: title 形如 "[J-RISQ] 2026/08/25 18:18:47 発表(Ver.8 最終報)"
+                val title = firstChildText(item, "title") ?: ""
+                val ver = regexFirst(title, "Ver\\.?(\\d+)")
+                val isFinal = title.contains("最終報")
+                val verLabel = buildString {
+                    if (!ver.isNullOrBlank()) append("Ver.").append(ver)
+                    if (isFinal) append(" 最終報")
+                }
+                add(
+                    Earthquake(
+                        id = "jrisq_$triggerId",
+                        magnitude = magnitude,
+                        place = place.ifBlank { "日本附近" },
+                        timeMillis = timeMillis,
+                        latitude = 0.0,
+                        longitude = 0.0,
+                        depthKm = 0.0,
+                        url = link,
+                        source = DataSource.JRISQ,
+                        maxIntensity = intensity,
+                        reportTimeMillis = reportTime,
+                        mapImageUrl = imageUrl,
+                        status = verLabel
+                    )
+                )
+            }
+        }
+    }
+
+    /** JST 短时间格式 "2026/08/25 18:07" */
+    private fun parseJstShort(value: String): Long {
+        return try {
+            val format = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.US)
+            format.timeZone = TimeZone.getTimeZone("Asia/Tokyo")
+            format.parse(value)?.time ?: 0L
+        } catch (e: Exception) {
+            0L
         }
     }
 

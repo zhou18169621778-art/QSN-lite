@@ -31,7 +31,9 @@ data class Earthquake(
     val magnitudeType: String = "",
     val agency: String = "",
     val status: String = "",
-    val reportTimeMillis: Long = 0
+    val reportTimeMillis: Long = 0,
+    val maxIntensity: String = "",
+    val mapImageUrl: String = ""
 ) : java.io.Serializable {
 
     fun determinationLabel(): String? {
@@ -61,9 +63,12 @@ data class Earthquake(
             DataSource.WOLFX_CENC -> com.example.eew.testlite.R.string.source_wolfx
             DataSource.WOLFX_JMA -> com.example.eew.testlite.R.string.source_wolfx_jma
             DataSource.EMSC -> com.example.eew.testlite.R.string.source_emsc
+            DataSource.EMSC_MT -> com.example.eew.testlite.R.string.source_emsc_mt
             DataSource.HKO -> com.example.eew.testlite.R.string.source_hko
             DataSource.BMKG -> com.example.eew.testlite.R.string.source_bmkg
             DataSource.JMA_XML -> com.example.eew.testlite.R.string.source_jma_xml
+            DataSource.JRISQ -> com.example.eew.testlite.R.string.source_jrisq
+            DataSource.CWA -> com.example.eew.testlite.R.string.source_cwa
             DataSource.CEA -> com.example.eew.testlite.R.string.source_cea
             DataSource.CEA_PR -> com.example.eew.testlite.R.string.source_cea_pr
         }
@@ -75,9 +80,12 @@ data class Earthquake(
             DataSource.WOLFX_CENC -> com.example.eew.testlite.R.string.source_short_wolfx
             DataSource.WOLFX_JMA -> com.example.eew.testlite.R.string.source_short_wolfx_jma
             DataSource.EMSC -> com.example.eew.testlite.R.string.source_short_emsc
+            DataSource.EMSC_MT -> com.example.eew.testlite.R.string.source_short_emsc_mt
             DataSource.HKO -> com.example.eew.testlite.R.string.source_short_hko
             DataSource.BMKG -> com.example.eew.testlite.R.string.source_short_bmkg
             DataSource.JMA_XML -> com.example.eew.testlite.R.string.source_short_jma_xml
+            DataSource.JRISQ -> com.example.eew.testlite.R.string.source_short_jrisq
+            DataSource.CWA -> com.example.eew.testlite.R.string.source_short_cwa
             DataSource.CEA -> com.example.eew.testlite.R.string.source_short_cea
             DataSource.CEA_PR -> com.example.eew.testlite.R.string.source_short_cea_pr
         }
@@ -89,9 +97,12 @@ data class Earthquake(
             DataSource.WOLFX_CENC -> com.example.eew.testlite.R.string.view_on_cenc
             DataSource.WOLFX_JMA -> com.example.eew.testlite.R.string.view_on_jma
             DataSource.EMSC -> com.example.eew.testlite.R.string.view_on_emsc
+            DataSource.EMSC_MT -> com.example.eew.testlite.R.string.view_on_emsc
             DataSource.HKO -> com.example.eew.testlite.R.string.view_on_hko
             DataSource.BMKG -> com.example.eew.testlite.R.string.view_on_bmkg
             DataSource.JMA_XML -> com.example.eew.testlite.R.string.view_on_jma_xml
+            DataSource.JRISQ -> com.example.eew.testlite.R.string.view_on_jrisq
+            DataSource.CWA -> com.example.eew.testlite.R.string.view_on_cwa
             DataSource.CEA -> com.example.eew.testlite.R.string.view_on_cenc
             DataSource.CEA_PR -> com.example.eew.testlite.R.string.view_on_cenc
         }
