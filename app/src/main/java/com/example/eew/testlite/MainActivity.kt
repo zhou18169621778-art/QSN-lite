@@ -34,13 +34,16 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.lifecycle.lifecycleScope
+import com.example.eew.testlite.data.AppUpdate
 import com.example.eew.testlite.data.Earthquake
 import com.example.eew.testlite.data.EarthquakeCache
 import com.example.eew.testlite.data.EarthquakeRepository
 import com.example.eew.testlite.data.Eew
 import com.example.eew.testlite.data.MomentTensorStore
 import com.example.eew.testlite.data.Settings
+import com.example.eew.testlite.data.UpdateRepository
 import com.example.eew.testlite.service.EewService
+import com.example.eew.testlite.service.UpdateNotifier
 import com.example.eew.testlite.ui.DetailActivity
 import com.example.eew.testlite.ui.EarthquakeAdapter
 import com.example.eew.testlite.ui.EarthquakeListItem
@@ -69,6 +72,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var warningTitle: TextView
     private lateinit var warningText: TextView
     private lateinit var warningClose: View
+    private lateinit var updateBanner: View
+    private lateinit var updateTitle: TextView
+    private lateinit var updateText: TextView
+    private lateinit var updateAction: View
+    private lateinit var updateClose: View
+    private var latestUpdate: AppUpdate? = null
     private var loadJob: Job? = null
     private var autoRefreshJob: Job? = null
 
@@ -88,6 +97,11 @@ class MainActivity : AppCompatActivity() {
         warningTitle = findViewById(R.id.warningTitle)
         warningText = findViewById(R.id.warningText)
         warningClose = findViewById(R.id.warningClose)
+        updateBanner = findViewById(R.id.updateBanner)
+        updateTitle = findViewById(R.id.updateTitle)
+        updateText = findViewById(R.id.updateText)
+        updateAction = findViewById(R.id.updateAction)
+        updateClose = findViewById(R.id.updateClose)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         swipeRefresh.setOnRefreshListener { loadData(isRefresh = true) }
@@ -99,6 +113,9 @@ class MainActivity : AppCompatActivity() {
         warningClose.setOnClickListener {
             dismissWarningBanner()
         }
+        updateBanner.setOnClickListener { openUpdatePage() }
+        updateAction.setOnClickListener { openUpdatePage() }
+        updateClose.setOnClickListener { dismissUpdateBanner() }
 
         MomentTensorStore.load(applicationContext)
         requestNotificationPermissionIfNeeded()
@@ -107,6 +124,7 @@ class MainActivity : AppCompatActivity() {
             EewService.loadLatestEew(this)
         }
         refreshWarningBanner()
+        showCachedUpdateBanner()
 
         loadData(isRefresh = false)
     }
@@ -114,6 +132,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refreshWarningBanner()
+        showCachedUpdateBanner()
+        checkForUpdate()
         loadJob?.cancel()
         loadData(isRefresh = true)
         startAutoRefresh()
@@ -211,6 +231,67 @@ class MainActivity : AppCompatActivity() {
                 .edit()
                 .putString("dismissed_eew", eew.id)
                 .apply()
+        }
+    }
+
+    /**
+     * 检查 GitHub Release 是否有新版本。自动检查每 6 小时最多一次,
+     * 发现新版本时展示横幅并推送一次通知。
+     */
+    private fun checkForUpdate() {
+        if (!UpdateRepository.shouldCheck(this)) return
+        UpdateRepository.markAttempt(this)
+        lifecycleScope.launch {
+            val remote = withContext(Dispatchers.IO) { UpdateRepository.fetchLatest() }
+            if (remote == null) return@launch
+            UpdateRepository.markChecked(this@MainActivity)
+            UpdateRepository.saveLatest(this@MainActivity, remote)
+            val current = UpdateRepository.currentVersionName(this@MainActivity)
+            if (!UpdateRepository.isNewer(remote.versionName, current)) {
+                hideUpdateBanner()
+                return@launch
+            }
+            showUpdateBanner(remote)
+            if (UpdateRepository.shouldNotify(this@MainActivity, remote)) {
+                UpdateNotifier.notify(this@MainActivity, remote)
+                UpdateRepository.markNotified(this@MainActivity, remote)
+            }
+        }
+    }
+
+    /** 离线时用缓存的版本信息展示横幅 */
+    private fun showCachedUpdateBanner() {
+        val cached = UpdateRepository.cachedLatest(this) ?: return
+        val current = UpdateRepository.currentVersionName(this)
+        if (!UpdateRepository.isNewer(cached.versionName, current)) return
+        if (UpdateRepository.isDismissed(this, cached)) return
+        showUpdateBanner(cached)
+    }
+
+    private fun showUpdateBanner(update: AppUpdate) {
+        latestUpdate = update
+        updateTitle.text = getString(R.string.update_banner_title, update.versionName)
+        updateText.text = getString(R.string.update_banner_text)
+        updateBanner.visibility = View.VISIBLE
+    }
+
+    private fun hideUpdateBanner() {
+        updateBanner.visibility = View.GONE
+    }
+
+    private fun dismissUpdateBanner() {
+        hideUpdateBanner()
+        latestUpdate?.let { UpdateRepository.dismiss(this, it) }
+    }
+
+    private fun openUpdatePage() {
+        val update = latestUpdate ?: return
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(update.releaseUrl)))
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(
+                this, R.string.update_open_failed, android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
     }
 

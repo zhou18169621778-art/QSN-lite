@@ -36,6 +36,7 @@ import com.example.eew.testlite.data.EarthquakeRepository
 import com.example.eew.testlite.data.Eew
 import com.example.eew.testlite.data.EewRepository
 import com.example.eew.testlite.data.Settings
+import com.example.eew.testlite.data.UpdateRepository
 import com.example.eew.testlite.data.WeatherAlert
 import com.example.eew.testlite.data.WeatherAlertRepository
 import com.example.eew.testlite.ui.DetailActivity
@@ -377,9 +378,31 @@ class EewService : Service() {
                 } catch (e: Exception) {
                     Log.w(TAG, "background data refresh failed", e)
                 }
+                try {
+                    checkAppUpdate()
+                } catch (e: Exception) {
+                    Log.w(TAG, "app update check failed", e)
+                }
                 delay(Settings.backIntervalMs(applicationContext))
             }
         }
+    }
+
+    /**
+     * 后台检查 GitHub Release 是否有新版本。
+     * 成功一次后 6 小时不再检查, 失败则 30 分钟后重试; 同一版本只提醒一次。
+     */
+    private fun checkAppUpdate() {
+        if (!UpdateRepository.shouldCheck(this)) return
+        UpdateRepository.markAttempt(this)
+        val remote = UpdateRepository.fetchLatest() ?: return
+        UpdateRepository.markChecked(this)
+        UpdateRepository.saveLatest(this, remote)
+        val current = UpdateRepository.currentVersionName(this)
+        if (!UpdateRepository.isNewer(remote.versionName, current)) return
+        if (!UpdateRepository.shouldNotify(this, remote)) return
+        UpdateNotifier.notify(this, remote)
+        UpdateRepository.markNotified(this, remote)
     }
 
     private fun checkAndNotifyQuakes(earthquakes: List<Earthquake>) {

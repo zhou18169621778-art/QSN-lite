@@ -119,4 +119,20 @@
     <string name="weather_load_more_failed">加载失败，点击重试</string>
     <string name="weather_refresh_failed">刷新失败</string>
     <string name="weather_open_failed">无法打开预警详情</string>
+    <string name="update_action">去更新</string>
+    <string name="update_banner_title">发现新版本 %1$s</string>
+    <string name="update_banner_text">点击查看更新日志并下载安装</string>
+    <string name="update_checking">检查中…</string>
+    <string name="update_check_failed">检查更新失败，请稍后再试</string>
+    <string name="update_already_latest">当前已是最新版本 %1$s</string>
+    <string name="update_new_version_found">发现新版本 %1$s</string>
+    <string name="update_download_action">下载 APK</string>
+    <string name="update_channel_name">应用更新</string>
+    <string name="update_channel_desc">新版本发布提醒</string>
+    <string name="update_notification_title">发现新版本 %1$s</string>
+    <string name="update_notification_text">点击查看更新日志与安装包</string>
+    <string name="update_version_label">应用版本</string>
+    <string name="update_open_failed">无法打开更新页面</string>
+    <string name="update_dialog_title">发现新版本 %1$s</string>
+    <string name="update_dialog_message">是否前往 GitHub Release 页面下载安装？</string>
 </resources>

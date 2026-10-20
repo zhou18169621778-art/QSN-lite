@@ -20,6 +20,8 @@ package com.example.eew.testlite.ui
 
 import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -29,15 +31,18 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Switch
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.widget.Toolbar
 import androidx.core.widget.NestedScrollView
 import com.example.eew.testlite.R
+import com.example.eew.testlite.data.AppUpdate
 import com.example.eew.testlite.data.DataSource
 import com.example.eew.testlite.data.EarthquakeRepository
 import com.example.eew.testlite.data.Settings
 import com.example.eew.testlite.data.SourceStatus
+import com.example.eew.testlite.data.UpdateRepository
 import com.example.eew.testlite.data.WeatherPrefs
 import com.example.eew.testlite.service.EewService
 import kotlinx.coroutines.Dispatchers
@@ -238,6 +243,11 @@ class SourcePanelActivity : AppCompatActivity() {
         val backValue = findViewById<TextView>(R.id.backIntervalValue)
         refreshIntervalText(frontValue, Settings.frontIntervalMs(this))
         refreshIntervalText(backValue, Settings.backIntervalMs(this))
+        val updateValue = findViewById<TextView>(R.id.updateVersionValue)
+        refreshUpdateVersionText(updateValue)
+        findViewById<View>(R.id.updateCheckRow).setOnClickListener {
+            checkAppUpdate(updateValue)
+        }
         findViewById<View>(R.id.frontIntervalRow).setOnClickListener {
             showIntervalDialog(
                 frontValue,
@@ -278,6 +288,61 @@ class SourcePanelActivity : AppCompatActivity() {
 
     private fun refreshIntervalText(view: TextView, ms: Long) {
         view.text = formatInterval(ms)
+    }
+
+    /** 「应用版本」行: 显示当前版本, 已有新版本时提示 */
+    private fun refreshUpdateVersionText(valueView: TextView) {
+        val current = UpdateRepository.currentVersionName(this)
+        val cached = UpdateRepository.cachedLatest(this)
+        valueView.text = if (cached != null &&
+            UpdateRepository.isNewer(cached.versionName, current)
+        ) {
+            getString(R.string.update_new_version_found, cached.versionName)
+        } else {
+            current
+        }
+    }
+
+    /** 手动检查更新 */
+    private fun checkAppUpdate(valueView: TextView) {
+        valueView.text = getString(R.string.update_checking)
+        lifecycleScope.launch {
+            val remote = withContext(Dispatchers.IO) { UpdateRepository.fetchLatest() }
+            val current = UpdateRepository.currentVersionName(this@SourcePanelActivity)
+            if (remote == null) {
+                valueView.text = current
+                Toast.makeText(
+                    this@SourcePanelActivity, R.string.update_check_failed, Toast.LENGTH_SHORT
+                ).show()
+                return@launch
+            }
+            UpdateRepository.markChecked(this@SourcePanelActivity)
+            UpdateRepository.saveLatest(this@SourcePanelActivity, remote)
+            if (UpdateRepository.isNewer(remote.versionName, current)) {
+                valueView.text = getString(R.string.update_new_version_found, remote.versionName)
+                AlertDialog.Builder(this@SourcePanelActivity)
+                    .setTitle(getString(R.string.update_dialog_title, remote.versionName))
+                    .setMessage(getString(R.string.update_dialog_message))
+                    .setPositiveButton(R.string.update_action) { _, _ -> openRelease(remote) }
+                    .setNegativeButton(R.string.cancel, null)
+                    .show()
+            } else {
+                valueView.text = current
+                Toast.makeText(
+                    this@SourcePanelActivity,
+                    getString(R.string.update_already_latest, current),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun openRelease(update: AppUpdate) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.releaseUrl)))
+        } catch (e: Exception) {
+            Toast.makeText(this, R.string.update_open_failed, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun formatInterval(ms: Long): String {

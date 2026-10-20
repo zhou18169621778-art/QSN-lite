@@ -6,7 +6,7 @@ QSN-lite 是一款轻量级 Android 地震监测与地震预警应用。应用�
 - 最低系统版本：Android 7.0（API 24）
 - 目标系统版本：Android 15（API 35）
 - 开发语言：Kotlin（原生 View + XML 布局）
-- 当前版本：1.1（versionCode 2）
+- 当前版本：1.1.1（versionCode 3）
 
 ## 功能说明
 
@@ -49,6 +49,16 @@ JMA 预警详情页展示震中、震级、最大震度、发震时间、发布�
 
 集中展示全部数据源的连接状态与延迟，提供一键测试连接、预警开关管理、刷新间隔配置入口，便于排查某一数据源异常。
 
+### 自动检查更新
+
+应用会从 GitHub Releases 自动拉取最新版本并提醒用户：
+
+- **检查时机**：进入前台时检查一次；后台常驻服务每轮刷新时顺带检查（成功后 6 小时内不再重复请求，失败则 30 分钟后重试）
+- **提醒方式**：主界面顶部出现蓝色更新横幅（可关闭），并在系统通知栏推送「新版本」通知（Android 13+ 需授予通知权限）
+- **数据来源**：`https://api.github.com/repos/zhou18169621778-art/QSN-lite/releases/latest`，按版本号逐段比较远端与本地版本
+- **手动检查**：数据源控制面板 → 高级功能 →「应用版本」，点击即可立即检查并跳转 Release 页面
+- **静默降级**：网络不可用或接口异常时静默跳过，不影响其他功能
+
 ### 地图
 
 主界面内置基于 osmdroid 的地图视图（高德瓦片），在列表旁直观展示震中位置。
@@ -88,7 +98,7 @@ ARM64 容器中如遇到 AAPT2 无法启动，可显式指定 SDK 内的 ARM64 �
 ./gradlew :app:assembleRelease
 ```
 
-v1.1 发布包沿用 1.0 的 Android Debug 证书签名，以保证已安装 1.0 的设备可以直接覆盖升级；如需上架应用商店，请替换为正式签名证书。
+发布包沿用 1.0 的 Android Debug 证书签名，以保证已安装 1.0 的设备可以直接覆盖升级；如需上架应用商店，请替换为正式签名证书。
 
 ## 项目结构
 
@@ -107,11 +117,13 @@ app/src/main/
 │   │   ├── MomentTensorStore.kt   # 震源机制解缓存
 │   │   ├── Settings.kt            # 用户设置读写
 │   │   ├── SourceStatus.kt        # 数据源状态模型
+│   │   ├── UpdateRepository.kt    # GitHub Release 更新检查与版本比较
 │   │   ├── WeatherAlert.kt        # 天气预警数据模型
 │   │   └── WeatherAlertRepository.kt
 │   ├── service/
 │   │   ├── EewService.kt          # 前台预警服务：监听、通知、阈值过滤
-│   │   └── EewWebSocketClient.kt  # Wolfx WebSocket 实时推送客户端
+│   │   ├── EewWebSocketClient.kt  # Wolfx WebSocket 实时推送客户端
+│   │   └── UpdateNotifier.kt      # 新版本提醒通知
 │   └── ui/
 │       ├── DetailActivity.kt      # 地震详情与多源对比
 │       ├── EewDetailActivity.kt   # 预警详情
@@ -126,6 +138,12 @@ app/src/main/
 ```
 
 ## 更新日志
+
+### 1.1.1（2026-10-20）
+
+- 新增自动检查更新：进入前台与后台常驻服务都会从 GitHub Releases 拉取最新版本，发现新版本时展示横幅并推送通知。
+- 数据源控制面板新增「应用版本」入口，可手动检查更新并跳转 Release 页面。
+- 更新检查频率限流（成功 6 小时一次、失败 30 分钟重试），同一版本只提醒一次。
 
 ### 1.1（2026-10-17）
 
