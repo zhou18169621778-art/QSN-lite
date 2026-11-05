@@ -6,7 +6,7 @@ QSN-lite 是一款轻量级 Android 地震监测与地震预警应用。应用�
 - 最低系统版本：Android 7.0（API 24）
 - 目标系统版本：Android 15（API 35）
 - 开发语言：Kotlin（原生 View + XML 布局）
-- 当前版本：1.1.1（versionCode 3）
+- 当前版本：1.1.2（versionCode 4）
 
 ## 功能说明
 
@@ -15,14 +15,22 @@ QSN-lite 是一款轻量级 Android 地震监测与地震预警应用。应用�
 聚合以下数据源最近 24 小时 M2.5 以上的地震记录，支持下拉刷新、前后台不同刷新间隔、点击查看详情：
 
 - USGS（美国地质调查局）
-- CENC（Wolfx 中国地震台网）
-- JMA（Wolfx 日本气象厅）
+- CENC（中国地震台网）
+- JMA（日本气象厅速报）
 - EMSC（欧洲地中海地震中心）
 - HKO（香港天文台）
 - BMKG（印度尼西亚气象气候地球物理局）
+- CWA（台湾中央气象署）
+- KMA（韩国气象厅）
+- GeoNet（新西兰地质灾害监测网）
+- GFZ（德国地学研究中心）
+- INGV（意大利国家地球物理与火山学研究所）
+- AFAD（土耳其灾害应急管理局）
 - JMA XML（日本气象厅 XML 速报）
 - EMSC CMT（欧洲地中海地震中心震源机制解）
 - J-RISQ 地震速報（日本实时震度速报）
+
+其中 CENC / CWA / JMA / HKO / USGS / EMSC / BMKG / KMA / GeoNet / GFZ / INGV / AFAD 同时通过 Jian Project `/all` 聚合 WebSocket 实时推送（需在数据源控制面板配置访问凭证），与 HTTP 轮询结果自动去重合并；无凭证时仍按 HTTP 轮询工作。
 
 地震详情页展示震级、深度、发震时间、经纬度、上报机构，并附带各数据源同一地震记录的横向对比，以及跳转原机构页面查看的入口。EMSC CMT 记录额外展示沙滩球、两个节面参数、DC/CLVD/ISO 分解与 P/T 轴；J-RISQ 记录展示最大计测震度、报次及推定震度分布图。
 
@@ -138,6 +146,12 @@ app/src/main/
 ```
 
 ## 更新日志
+
+### 1.1.2（2026-11-05）
+
+- 接入 Jian Project `/all` 聚合数据源：常驻 WebSocket 实时接收地震速报，新增 KMA（韩国气象厅）、GeoNet（新西兰）、GFZ（德国）、INGV（意大利）、AFAD（土耳其）五个数据源，并为 CENC / CWA / JMA / HKO / USGS / EMSC / BMKG 提供实时更新；与 HTTP 轮询结果自动去重合并，断线按指数退避重连，事件本地缓存 24 小时。
+- 数据源控制面板新增「Jian 聚合源访问凭证」与连接状态：支持粘贴 `lk_` 登录密钥当场换取长期 Token，或直接粘贴 `rt_` 长期 Token；访问令牌自动换发，凭证失效时停止重连避免触发 IP 封禁。
+- 版本号更新为 1.1.2（versionCode 4）。
 
 ### 1.1.1（2026-10-20）
 

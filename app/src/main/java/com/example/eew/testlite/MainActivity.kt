@@ -39,6 +39,7 @@ import com.example.eew.testlite.data.Earthquake
 import com.example.eew.testlite.data.EarthquakeCache
 import com.example.eew.testlite.data.EarthquakeRepository
 import com.example.eew.testlite.data.Eew
+import com.example.eew.testlite.data.JianAllFeed
 import com.example.eew.testlite.data.MomentTensorStore
 import com.example.eew.testlite.data.Settings
 import com.example.eew.testlite.data.UpdateRepository
@@ -80,6 +81,7 @@ class MainActivity : AppCompatActivity() {
     private var latestUpdate: AppUpdate? = null
     private var loadJob: Job? = null
     private var autoRefreshJob: Job? = null
+    private var lastQuakes: List<Earthquake> = emptyList()
 
     private val notificationPermissionRequest = 1001
 
@@ -161,6 +163,33 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         stopAutoRefresh()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        JianAllFeed.listener = {
+            runOnUiThread { onFeedUpdated() }
+        }
+        JianAllFeed.acquire(applicationContext)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        JianAllFeed.listener = null
+        JianAllFeed.release()
+    }
+
+    /** /all 推送新地震后局部合并刷新，不再等待下一次 HTTP 轮询 */
+    private fun onFeedUpdated() {
+        if (lastQuakes.isEmpty()) return
+        val merged = JianAllFeed.merge(lastQuakes)
+        lastQuakes = merged
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                EarthquakeCache.save(applicationContext, merged)
+            }
+            showContent(merged)
+        }
     }
 
     private fun startAutoRefresh() {
@@ -303,6 +332,7 @@ class MainActivity : AppCompatActivity() {
                 EarthquakeCache.load(applicationContext)
             }
             if (cached.isNotEmpty()) {
+                lastQuakes = cached
                 showContent(cached)
             } else {
                 showLoading()
@@ -314,6 +344,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 if (isActive) {
+                    lastQuakes = earthquakes
                     withContext(Dispatchers.IO) {
                         EarthquakeCache.save(applicationContext, earthquakes)
                     }

@@ -71,6 +71,11 @@ data class Earthquake(
             DataSource.CWA -> com.example.eew.testlite.R.string.source_cwa
             DataSource.CEA -> com.example.eew.testlite.R.string.source_cea
             DataSource.CEA_PR -> com.example.eew.testlite.R.string.source_cea_pr
+            DataSource.KMA -> com.example.eew.testlite.R.string.source_kma
+            DataSource.GEONET -> com.example.eew.testlite.R.string.source_geonet
+            DataSource.GFZ -> com.example.eew.testlite.R.string.source_gfz
+            DataSource.INGV -> com.example.eew.testlite.R.string.source_ingv
+            DataSource.AFAD -> com.example.eew.testlite.R.string.source_afad
         }
     }
 
@@ -88,6 +93,11 @@ data class Earthquake(
             DataSource.CWA -> com.example.eew.testlite.R.string.source_short_cwa
             DataSource.CEA -> com.example.eew.testlite.R.string.source_short_cea
             DataSource.CEA_PR -> com.example.eew.testlite.R.string.source_short_cea_pr
+            DataSource.KMA -> com.example.eew.testlite.R.string.source_short_kma
+            DataSource.GEONET -> com.example.eew.testlite.R.string.source_short_geonet
+            DataSource.GFZ -> com.example.eew.testlite.R.string.source_short_gfz
+            DataSource.INGV -> com.example.eew.testlite.R.string.source_short_ingv
+            DataSource.AFAD -> com.example.eew.testlite.R.string.source_short_afad
         }
     }
 
@@ -105,6 +115,11 @@ data class Earthquake(
             DataSource.CWA -> com.example.eew.testlite.R.string.view_on_cwa
             DataSource.CEA -> com.example.eew.testlite.R.string.view_on_cenc
             DataSource.CEA_PR -> com.example.eew.testlite.R.string.view_on_cenc
+            DataSource.KMA -> com.example.eew.testlite.R.string.view_on_kma
+            DataSource.GEONET -> com.example.eew.testlite.R.string.view_on_geonet
+            DataSource.GFZ -> com.example.eew.testlite.R.string.view_on_gfz
+            DataSource.INGV -> com.example.eew.testlite.R.string.view_on_ingv
+            DataSource.AFAD -> com.example.eew.testlite.R.string.view_on_afad
         }
     }
 

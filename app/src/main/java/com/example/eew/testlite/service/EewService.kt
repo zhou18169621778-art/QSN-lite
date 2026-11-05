@@ -35,6 +35,7 @@ import com.example.eew.testlite.data.EarthquakeCache
 import com.example.eew.testlite.data.EarthquakeRepository
 import com.example.eew.testlite.data.Eew
 import com.example.eew.testlite.data.EewRepository
+import com.example.eew.testlite.data.JianAllFeed
 import com.example.eew.testlite.data.Settings
 import com.example.eew.testlite.data.UpdateRepository
 import com.example.eew.testlite.data.WeatherAlert
@@ -275,6 +276,7 @@ class EewService : Service() {
         startPolling()
         startBackgroundDataRefresh()
         startWeatherPolling()
+        JianAllFeed.acquire(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -296,6 +298,7 @@ class EewService : Service() {
         weatherPollJob?.cancel()
         webSocketClient?.close()
         webSocketClient = null
+        JianAllFeed.release()
         scope.cancel()
         super.onDestroy()
     }

@@ -40,6 +40,8 @@ import com.example.eew.testlite.R
 import com.example.eew.testlite.data.AppUpdate
 import com.example.eew.testlite.data.DataSource
 import com.example.eew.testlite.data.EarthquakeRepository
+import com.example.eew.testlite.data.JianAllFeed
+import com.example.eew.testlite.data.JianAuth
 import com.example.eew.testlite.data.Settings
 import com.example.eew.testlite.data.SourceStatus
 import com.example.eew.testlite.data.UpdateRepository
@@ -51,6 +53,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.lifecycleScope
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class SourcePanelActivity : AppCompatActivity() {
@@ -74,6 +78,7 @@ class SourcePanelActivity : AppCompatActivity() {
         initAlertSwitches()
         initWeatherRegion()
         initAdvancedSettings()
+        initJianFeed()
 
         testConnections()
     }
@@ -266,6 +271,80 @@ class SourcePanelActivity : AppCompatActivity() {
         }
     }
 
+    private fun initJianFeed() {
+        refreshJianStatus()
+        findViewById<View>(R.id.jianCredentialRow).setOnClickListener {
+            showJianCredentialDialog()
+        }
+    }
+
+    private fun refreshJianStatus() {
+        val credential = findViewById<TextView>(R.id.jianCredentialValue)
+        val status = findViewById<TextView>(R.id.jianStatusValue)
+        val expiresAt = JianAuth.rtExpiresAt(this)
+        credential.text = when {
+            !JianAuth.hasCredential(this) -> getString(R.string.jian_credential_none)
+            expiresAt > 0 -> getString(
+                R.string.jian_credential_expires,
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(expiresAt * 1000))
+            )
+            else -> getString(R.string.jian_credential_configured)
+        }
+        status.text = when (JianAllFeed.state) {
+            JianAllFeed.State.CONNECTED -> getString(R.string.jian_state_connected)
+            JianAllFeed.State.CONNECTING -> getString(R.string.jian_state_connecting)
+            JianAllFeed.State.RECONNECT_WAIT -> getString(R.string.jian_state_reconnect)
+            JianAllFeed.State.AUTH_FAILED -> getString(R.string.jian_state_auth_failed)
+            JianAllFeed.State.IDLE -> getString(R.string.jian_state_idle)
+        }
+    }
+
+    private fun showJianCredentialDialog() {
+        val input = EditText(this).apply {
+            hint = getString(R.string.jian_credential_input_hint)
+            setSingleLine(false)
+            setPadding(dp(20), dp(8), dp(20), dp(8))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.jian_credential_dialog_title)
+            .setMessage(R.string.jian_credential_dialog_message)
+            .setView(input)
+            .setPositiveButton(R.string.jian_credential_save) { _, _ ->
+                saveJianCredential(input.text.toString())
+            }
+            .setNegativeButton(R.string.jian_credential_clear) { _, _ ->
+                JianAuth.clear(this)
+                JianAllFeed.onCredentialChanged()
+                refreshJianStatus()
+                Toast.makeText(this, R.string.jian_credential_cleared, Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun saveJianCredential(raw: String) {
+        if (raw.isBlank()) return
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching { JianAuth.saveCredential(this@SourcePanelActivity, raw) }
+            }
+            result.onSuccess {
+                JianAllFeed.onCredentialChanged()
+                refreshJianStatus()
+                Toast.makeText(
+                    this@SourcePanelActivity, R.string.jian_credential_saved, Toast.LENGTH_SHORT
+                ).show()
+            }.onFailure { e ->
+                refreshJianStatus()
+                Toast.makeText(
+                    this@SourcePanelActivity,
+                    e.message ?: getString(R.string.jian_credential_error),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
     private fun showIntervalDialog(
         valueView: TextView,
         options: List<Long>,
@@ -361,6 +440,7 @@ class SourcePanelActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        refreshJianStatus()
     }
 
     private fun testConnections() {

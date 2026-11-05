@@ -44,6 +44,11 @@ enum class DataSource(val labelRes: Int) {
     CWA(com.example.eew.testlite.R.string.source_cwa),
     CEA(com.example.eew.testlite.R.string.source_cea),
     CEA_PR(com.example.eew.testlite.R.string.source_cea_pr),
+    KMA(com.example.eew.testlite.R.string.source_kma),
+    GEONET(com.example.eew.testlite.R.string.source_geonet),
+    GFZ(com.example.eew.testlite.R.string.source_gfz),
+    INGV(com.example.eew.testlite.R.string.source_ingv),
+    AFAD(com.example.eew.testlite.R.string.source_afad),
 }
 
 object EarthquakeRepository {
@@ -106,9 +111,11 @@ object EarthquakeRepository {
         lastStatuses = statuses.sortedBy { it.label }
         MomentTensorStore.save(context)
         val seen = LinkedHashSet<String>()
-        return results
-            .filter { seen.add(it.id) }
-            .sortedByDescending { it.timeMillis }
+        return JianAllFeed.merge(
+            results
+                .filter { seen.add(it.id) }
+                .sortedByDescending { it.timeMillis }
+        )
     }
 
     private suspend fun fetchUsgs(): List<Earthquake> {
