@@ -49,6 +49,7 @@ enum class DataSource(val labelRes: Int) {
     GFZ(com.example.eew.testlite.R.string.source_gfz),
     INGV(com.example.eew.testlite.R.string.source_ingv),
     AFAD(com.example.eew.testlite.R.string.source_afad),
+    SA(com.example.eew.testlite.R.string.source_sa),
 }
 
 object EarthquakeRepository {

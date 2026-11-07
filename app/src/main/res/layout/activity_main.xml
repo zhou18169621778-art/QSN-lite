@@ -28,7 +28,7 @@
         android:layout_marginTop="8dp"
         android:visibility="gone"
         app:cardBackgroundColor="#FFF3E0"
-        app:cardCornerRadius="14dp"
+        app:cardCornerRadius="8dp"
         app:cardElevation="0dp"
         app:strokeColor="#FFE0B2"
         app:strokeWidth="1dp">
@@ -92,7 +92,7 @@
         android:layout_marginTop="8dp"
         android:visibility="gone"
         app:cardBackgroundColor="#E3F2FD"
-        app:cardCornerRadius="14dp"
+        app:cardCornerRadius="8dp"
         app:cardElevation="0dp"
         app:strokeColor="#BBDEFB"
         app:strokeWidth="1dp">

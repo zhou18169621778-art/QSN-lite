@@ -62,6 +62,12 @@ object JianAllFeed {
     @Volatile
     var listener: (() -> Unit)? = null
 
+    /** 预警帧回调（CEA / CEA-PR / CWA-EEW / SA），在 WebSocket 线程触发 */
+    @Volatile
+    var eewListener: ((Eew) -> Unit)? = null
+
+    private val eewSources = setOf("cea", "cea-pr", "cwa-eew", "sa")
+
     private val refs = AtomicInteger(0)
     private val events = LinkedHashMap<String, Earthquake>()
 
@@ -222,10 +228,14 @@ object JianAllFeed {
             }
             "all" -> handleSnapshot(obj)
             else -> {
-                if (type.endsWith("list_response")) {
-                    handleListResponse(type.removeSuffix("_response").removeSuffix("list"), obj)
-                } else {
-                    handleSingle(type, obj)
+                when {
+                    type in eewSources -> {
+                        handleEew(type, obj)
+                        return
+                    }
+                    type.endsWith("list_response") ->
+                        handleListResponse(type.removeSuffix("_response").removeSuffix("list"), obj)
+                    else -> handleSingle(type, obj)
                 }
             }
         }
@@ -238,13 +248,56 @@ object JianAllFeed {
             if (!key.startsWith("source：") && !key.startsWith("source:")) continue
             val sourceId = key.substringAfter('：').substringAfter(':')
             val data = root.optJSONObject(key)?.optJSONObject("Data") ?: continue
-            parseQuake(sourceId, data)?.let { upsert(it) }
+            if (sourceId in eewSources) {
+                parseEew(sourceId, data)?.let { eewListener?.invoke(it) }
+            } else {
+                parseQuake(sourceId, data)?.let { upsert(it) }
+            }
         }
     }
 
     private fun handleSingle(sourceId: String, envelope: JSONObject) {
         val data = envelope.optJSONObject("Data") ?: return
         parseQuake(sourceId, data)?.let { upsert(it) }
+    }
+
+    private fun handleEew(sourceId: String, envelope: JSONObject) {
+        val data = envelope.optJSONObject("Data") ?: return
+        parseEew(sourceId, data)?.let { eewListener?.invoke(it) }
+    }
+
+    /**
+     * 预警帧字段很少（id/number/originTime/经纬度/深度/震级/地名），
+     * 没有发布时刻与强度等级：报告时刻取发震时刻，预警通道默认视为警报。
+     */
+    private fun parseEew(sourceId: String, d: JSONObject): Eew? {
+        val source = when (sourceId) {
+            "cea" -> DataSource.CEA
+            "cea-pr" -> DataSource.CEA_PR
+            "cwa-eew" -> DataSource.CWA
+            "sa" -> DataSource.SA
+            else -> return null
+        }
+        val id = d.optString("id")
+        if (id.isBlank()) return null
+        val origin = parseTimeMillis(d)
+        if (origin <= 0L) return null
+        return Eew(
+            id = "jian_${sourceId}_$id",
+            source = source,
+            reportTimeMillis = origin,
+            originTimeMillis = origin,
+            hypocenter = d.optString("placeName"),
+            latitude = d.optDouble("latitude", 0.0),
+            longitude = d.optDouble("longitude", 0.0),
+            magnitude = d.optDouble("magnitude", 0.0),
+            depthKm = d.optDouble("depth", 0.0),
+            maxIntensity = "",
+            isWarn = true,
+            isFinal = false,
+            isCancel = false,
+            reportNum = d.optInt("number", 0)
+        )
     }
 
     /** alllist 响应：cenc/cwa/jma/hko 各推送 50 条历史 */
@@ -315,6 +368,13 @@ object JianAllFeed {
             if (kotlin.math.abs(a.longitude - b.longitude) > 2.0) return false
         }
         return true
+    }
+
+    /** 各源当前缓存的列表事件数（供面板诊断展示） */
+    @Synchronized
+    fun countsBySource(): Map<DataSource, Int> {
+        pruneLocked()
+        return events.values.groupingBy { it.source }.eachCount()
     }
 
     private fun notifyChanged() {

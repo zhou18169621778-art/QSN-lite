@@ -1,10 +1,11 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.EarthquakeMonitor" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.EarthquakeMonitor" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
-        <item name="colorPrimaryVariant">@color/primary_dark</item>
         <item name="colorOnPrimary">@color/white</item>
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="colorOutline">@color/divider</item>
+        <item name="colorControlActivated">@color/primary</item>
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@color/primary</item>
         <item name="android:windowLightStatusBar" tools:targetApi="23">false</item>
@@ -13,16 +14,15 @@
         <item name="materialButtonStyle">@style/Widget.EarthquakeMonitor.Button</item>
     </style>
 
-    <style name="Widget.EarthquakeMonitor.Card" parent="Widget.MaterialComponents.CardView">
-        <item name="cardCornerRadius">16dp</item>
+    <style name="Widget.EarthquakeMonitor.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">8dp</item>
         <item name="cardElevation">1dp</item>
         <item name="cardBackgroundColor">@color/surface</item>
         <item name="strokeColor">@color/divider</item>
         <item name="strokeWidth">1dp</item>
-        <item name="rippleColor">#14000000</item>
     </style>
 
-    <style name="Widget.EarthquakeMonitor.Button" parent="Widget.MaterialComponents.Button">
-        <item name="cornerRadius">24dp</item>
+    <style name="Widget.EarthquakeMonitor.Button" parent="Widget.Material3.Button">
+        <item name="cornerRadius">8dp</item>
     </style>
 </resources>

@@ -76,6 +76,7 @@ data class Earthquake(
             DataSource.GFZ -> com.example.eew.testlite.R.string.source_gfz
             DataSource.INGV -> com.example.eew.testlite.R.string.source_ingv
             DataSource.AFAD -> com.example.eew.testlite.R.string.source_afad
+            DataSource.SA -> com.example.eew.testlite.R.string.source_sa
         }
     }
 
@@ -98,6 +99,7 @@ data class Earthquake(
             DataSource.GFZ -> com.example.eew.testlite.R.string.source_short_gfz
             DataSource.INGV -> com.example.eew.testlite.R.string.source_short_ingv
             DataSource.AFAD -> com.example.eew.testlite.R.string.source_short_afad
+            DataSource.SA -> com.example.eew.testlite.R.string.source_short_sa
         }
     }
 
@@ -120,6 +122,7 @@ data class Earthquake(
             DataSource.GFZ -> com.example.eew.testlite.R.string.view_on_gfz
             DataSource.INGV -> com.example.eew.testlite.R.string.view_on_ingv
             DataSource.AFAD -> com.example.eew.testlite.R.string.view_on_afad
+            DataSource.SA -> com.example.eew.testlite.R.string.view_on_sa
         }
     }
 

@@ -71,6 +71,7 @@ class EewService : Service() {
         private const val KEY_CEA_ENABLED = "cea_enabled"
         private const val KEY_CEA_PR_ENABLED = "cea_pr_enabled"
         private const val KEY_CWA_ENABLED = "cwa_eew_enabled"
+        private const val KEY_SA_ENABLED = "sa_eew_enabled"
         private const val KEY_WARN_ONLY = "warn_only"
         private const val KEY_WEATHER_ENABLED = "weather_enabled"
         const val EXTRA_STOP = "extra_stop"
@@ -99,6 +100,7 @@ class EewService : Service() {
                 DataSource.CEA -> KEY_CEA_ENABLED
                 DataSource.CEA_PR -> KEY_CEA_PR_ENABLED
                 DataSource.CWA -> KEY_CWA_ENABLED
+                DataSource.SA -> KEY_SA_ENABLED
                 else -> KEY_CENC_ENABLED
             }
             return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -147,6 +149,7 @@ class EewService : Service() {
                 DataSource.CEA -> KEY_CEA_ENABLED
                 DataSource.CEA_PR -> KEY_CEA_PR_ENABLED
                 DataSource.CWA -> KEY_CWA_ENABLED
+                DataSource.SA -> KEY_SA_ENABLED
                 else -> KEY_CENC_ENABLED
             }
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -261,6 +264,9 @@ class EewService : Service() {
     private var weatherPollJob: Job? = null
     private var webSocketClient: EewWebSocketClient? = null
 
+    /** 最近已通知的预警，用于同一事件经 Wolfx / Jian 不同上游重复推送时去重 */
+    private val recentAlerts = java.util.concurrent.CopyOnWriteArrayList<Eew>()
+
     @Volatile
     private var jmaConnected = false
 
@@ -276,6 +282,10 @@ class EewService : Service() {
         startPolling()
         startBackgroundDataRefresh()
         startWeatherPolling()
+        JianAllFeed.eewListener = { eew ->
+            updateLatestEew(eew)
+            checkAndNotify(eew)
+        }
         JianAllFeed.acquire(applicationContext)
     }
 
@@ -298,6 +308,7 @@ class EewService : Service() {
         weatherPollJob?.cancel()
         webSocketClient?.close()
         webSocketClient = null
+        JianAllFeed.eewListener = null
         JianAllFeed.release()
         scope.cancel()
         super.onDestroy()
@@ -577,9 +588,27 @@ class EewService : Service() {
         val seenId = if (eew.reportNum > 0) eew.id + "#" + eew.reportNum else eew.id
         val lastSeen = prefs.getString(key, null)
         if (seenId == lastSeen) return
+        // 同一地震可能经 Wolfx 与 Jian 两个上游分别推送（事件 id 不同），10 分钟内只通知一次
+        if (isDuplicateAlert(eew)) return
 
         prefs.edit().putString(key, seenId).apply()
+        recentAlerts.add(eew)
+        if (recentAlerts.size > 20) recentAlerts.removeAt(0)
         sendAlertNotification(eew)
+    }
+
+    private fun isDuplicateAlert(eew: Eew): Boolean {
+        val now = System.currentTimeMillis()
+        recentAlerts.removeIf { now - it.reportTimeMillis > 10 * 60 * 1000L }
+        return recentAlerts.any { prev ->
+            prev.id != eew.id &&
+                prev.source == eew.source &&
+                kotlin.math.abs(prev.originTimeMillis - eew.originTimeMillis) <= 2 * 60 * 1000L &&
+                kotlin.math.abs(prev.magnitude - eew.magnitude) <= 0.8 &&
+                (prev.latitude == 0.0 || eew.latitude == 0.0 ||
+                    (kotlin.math.abs(prev.latitude - eew.latitude) <= 2.0 &&
+                        kotlin.math.abs(prev.longitude - eew.longitude) <= 2.0))
+        }
     }
 
     private fun sendAlertNotification(eew: Eew) {

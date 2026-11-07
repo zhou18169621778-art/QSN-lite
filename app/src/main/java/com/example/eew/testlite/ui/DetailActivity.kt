@@ -19,6 +19,7 @@
 package com.example.eew.testlite.ui
 
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
@@ -80,7 +81,7 @@ class DetailActivity : AppCompatActivity() {
 
         findViewById<TextView>(R.id.detailMagnitude).apply {
             text = earthquake.formattedMagnitude()
-            setBackgroundColor(earthquake.magnitudeColor())
+            backgroundTintList = ColorStateList.valueOf(earthquake.magnitudeColor())
         }
         findViewById<TextView>(R.id.detailPlace).text = earthquake.place
         findViewById<TextView>(R.id.detailTime).text =

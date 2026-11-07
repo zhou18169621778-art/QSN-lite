@@ -57,6 +57,7 @@ data class Eew(
             DataSource.CWA -> com.example.eew.testlite.R.string.source_short_cwa
             DataSource.CEA -> com.example.eew.testlite.R.string.source_short_cea
             DataSource.CEA_PR -> com.example.eew.testlite.R.string.source_short_cea_pr
+            DataSource.SA -> com.example.eew.testlite.R.string.source_short_sa
             else -> com.example.eew.testlite.R.string.source_short_wolfx
         }
     }

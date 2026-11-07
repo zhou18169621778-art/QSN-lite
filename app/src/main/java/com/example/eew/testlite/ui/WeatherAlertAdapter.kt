@@ -18,6 +18,7 @@
 
 package com.example.eew.testlite.ui
 
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -111,7 +112,7 @@ class WeatherAlertAdapter(
 
     private fun bindItem(holder: ItemViewHolder, alert: WeatherAlert) {
         val color = alert.level.color
-        holder.bar.setBackgroundColor(color)
+        holder.bar.backgroundTintList = ColorStateList.valueOf(color)
         holder.typeText.text = buildString {
             append(alert.kind)
             if (alert.levelName.isNotBlank()) append(alert.levelName)

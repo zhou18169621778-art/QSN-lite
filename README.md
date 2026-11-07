@@ -6,7 +6,7 @@ QSN-lite 是一款轻量级 Android 地震监测与地震预警应用。应用�
 - 最低系统版本：Android 7.0（API 24）
 - 目标系统版本：Android 15（API 35）
 - 开发语言：Kotlin（原生 View + XML 布局）
-- 当前版本：1.1.2（versionCode 4）
+- 当前版本：1.1.3（versionCode 5）
 
 ## 功能说明
 
@@ -44,6 +44,7 @@ QSN-lite 是一款轻量级 Android 地震监测与地震预警应用。应用�
 - 四川省预警（HTTP 轮询）
 - 福建省预警（HTTP 轮询）
 - 重庆市预警（HTTP 轮询）
+- Jian 聚合通道：CEA / CEA-PR / CWA-EEW / ShakeAlert（WebSocket 实时推送，需配置聚合源凭证，与 Wolfx 通道跨上游去重）
 
 收到预警后按用户设置弹出通知。预警接收设置支持按源独立开关（JMA / CENC / CEA / CEA-PR / CWA）、仅接收警报（速报不打扰）、地震情报通知及震级阈值（M3 / M4 / M5 / M6 可选）。
 
@@ -146,6 +147,13 @@ app/src/main/
 ```
 
 ## 更新日志
+
+### 1.1.3（2026-11-05）
+
+- 接入 Jian Project 预警源：CEA（中国地震预警网）、CEA-PR（省级分中心）、CWA-EEW（台湾强震即时警报）、ShakeAlert（美国）经 `/all` 实时推送，与 Wolfx 通道跨上游去重；新增 ShakeAlert 独立开关。
+- 数据源控制面板的聚合源状态显示缓存条数，点击可查看各源事件明细。
+- 主题升级为 Material Design 3，卡片、按钮、横幅统一 8dp 微圆角；修复震级色块因背景被整体替换而显示为直角的问题，详情页震级徽标改为圆角矩形。
+- 版本号更新为 1.1.3（versionCode 5）。
 
 ### 1.1.2（2026-11-05）
 

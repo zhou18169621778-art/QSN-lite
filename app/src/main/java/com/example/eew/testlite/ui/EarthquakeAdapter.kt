@@ -18,6 +18,7 @@
 
 package com.example.eew.testlite.ui
 
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -101,7 +102,8 @@ class EarthquakeAdapter(
     private fun bindEew(holder: EewViewHolder, e: Eew) {
         holder.magnitudeText.text = String.format(Locale.US, "%.1f", e.displayMagnitude())
         holder.magnitudeText.setTextColor(0xFFFFFFFF.toInt())
-        holder.eewBadgeBg.setBackgroundColor(if (e.isWarn) 0xFFE33B2B.toInt() else 0xFFF57C00.toInt())
+        holder.eewBadgeBg.backgroundTintList =
+            ColorStateList.valueOf(if (e.isWarn) 0xFFE33B2B.toInt() else 0xFFF57C00.toInt())
         holder.tagText.text = buildString {
             append("EEW预警")
             if (e.method.isNotBlank()) append("·").append(e.method)
@@ -119,7 +121,7 @@ class EarthquakeAdapter(
     private fun bindQuake(holder: ViewHolder, item: Earthquake) {
         holder.magnitudeText.text = item.formattedMagnitudeShort()
         holder.magnitudeText.setTextColor(item.magnitudeColor())
-        holder.magnitudeBadge.setBackgroundColor(item.magnitudeColor())
+        holder.magnitudeBadge.backgroundTintList = ColorStateList.valueOf(item.magnitudeColor())
         holder.placeText.text = item.place.ifBlank { "位置未定" }
         holder.depthText.text = when {
             item.source == DataSource.JRISQ && item.maxIntensity.isNotBlank() -> buildString {

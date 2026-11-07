@@ -92,6 +92,7 @@ class SourcePanelActivity : AppCompatActivity() {
         val eewCeaSwitch = findViewById<SwitchCompat>(R.id.eewCeaSwitch)
         val eewCeaPrSwitch = findViewById<SwitchCompat>(R.id.eewCeaPrSwitch)
         val eewCwaSwitch = findViewById<SwitchCompat>(R.id.eewCwaSwitch)
+        val eewSaSwitch = findViewById<SwitchCompat>(R.id.eewSaSwitch)
 
         serviceSwitch.isChecked = EewService.isServiceEnabled(this)
         warnOnlySwitch.isChecked = EewService.isWarnOnly(this)
@@ -101,6 +102,7 @@ class SourcePanelActivity : AppCompatActivity() {
         eewCeaSwitch.isChecked = EewService.isSourceEnabled(this, DataSource.CEA)
         eewCeaPrSwitch.isChecked = EewService.isSourceEnabled(this, DataSource.CEA_PR)
         eewCwaSwitch.isChecked = EewService.isSourceEnabled(this, DataSource.CWA)
+        eewSaSwitch.isChecked = EewService.isSourceEnabled(this, DataSource.SA)
 
         serviceSwitch.setOnCheckedChangeListener { _, checked ->
             EewService.setServiceEnabled(this, checked)
@@ -121,6 +123,9 @@ class SourcePanelActivity : AppCompatActivity() {
         }
         eewCwaSwitch.setOnCheckedChangeListener { _, checked ->
             EewService.setSourceEnabled(this, DataSource.CWA, checked)
+        }
+        eewSaSwitch.setOnCheckedChangeListener { _, checked ->
+            EewService.setSourceEnabled(this, DataSource.SA, checked)
         }
         warnOnlySwitch.setOnCheckedChangeListener { _, checked ->
             EewService.setWarnOnly(this, checked)
@@ -276,6 +281,26 @@ class SourcePanelActivity : AppCompatActivity() {
         findViewById<View>(R.id.jianCredentialRow).setOnClickListener {
             showJianCredentialDialog()
         }
+        findViewById<View>(R.id.jianStatusRow).setOnClickListener {
+            showJianStatusDialog()
+        }
+    }
+
+    private fun showJianStatusDialog() {
+        val counts = JianAllFeed.countsBySource()
+        val text = if (counts.isEmpty()) {
+            getString(R.string.jian_status_detail_empty)
+        } else {
+            DataSource.values().mapNotNull { source ->
+                val count = counts[source] ?: 0
+                if (count == 0) null else getString(source.labelRes) + "：" + count
+            }.joinToString("\n")
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.jian_status_detail_title)
+            .setMessage(text)
+            .setPositiveButton(R.string.confirm, null)
+            .show()
     }
 
     private fun refreshJianStatus() {
@@ -291,7 +316,10 @@ class SourcePanelActivity : AppCompatActivity() {
             else -> getString(R.string.jian_credential_configured)
         }
         status.text = when (JianAllFeed.state) {
-            JianAllFeed.State.CONNECTED -> getString(R.string.jian_state_connected)
+            JianAllFeed.State.CONNECTED -> getString(
+                R.string.jian_status_cached,
+                JianAllFeed.countsBySource().values.sum()
+            )
             JianAllFeed.State.CONNECTING -> getString(R.string.jian_state_connecting)
             JianAllFeed.State.RECONNECT_WAIT -> getString(R.string.jian_state_reconnect)
             JianAllFeed.State.AUTH_FAILED -> getString(R.string.jian_state_auth_failed)
